@@ -119,7 +119,7 @@ class ConvNextBlock(nn.Module):
             nn.Linear(time_emb_dim, dim)
         ) if exists(time_emb_dim) else None
 
-        self.ds_conv = nn.Conv2d(dim, dim, 7, padding = 3, groups = dim)
+        self.ds_conv = nn.Conv2d(dim, dim, 5, padding = 2, groups = dim)
 
         self.net = nn.Sequential(
             LayerNorm(dim) if norm else nn.Identity(),
@@ -294,7 +294,7 @@ def cosine_beta_schedule(timesteps, s = 0.008):
     """
     steps = timesteps + 1
     x = torch.linspace(0, timesteps, steps)
-    alphas_cumprod = torch.cos(((x / timesteps) + s) / (1 + s) * torch.pi * 0.5) ** 2
+    alphas_cumprod = torch.cos(((x / timesteps) + s) / (1 + s) * math.pi * 0.5) ** 2
     alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
     betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
     return torch.clip(betas, 0, 0.999)
@@ -511,7 +511,8 @@ class Trainer(object):
         self.gradient_accumulate_every = gradient_accumulate_every
         self.train_num_steps = train_num_steps
 
-        self.ds = Dataset(folder, image_size)
+        # self.ds = Dataset(folder, image_size)
+        self.ds = folder
         self.dl = cycle(data.DataLoader(self.ds, batch_size = train_batch_size, shuffle=True, pin_memory=True))
         self.opt = Adam(diffusion_model.parameters(), lr=train_lr)
 
@@ -552,7 +553,8 @@ class Trainer(object):
         self.scaler.load_state_dict(data['scaler'])
 
     def train(self):
-        while self.step < self.train_num_steps:
+        for i in tqdm(range(self.train_num_steps)):
+        # while self.step < self.train_num_steps:
             for i in range(self.gradient_accumulate_every):
                 data = next(self.dl).cuda()
 
